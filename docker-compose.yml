@@ -1,0 +1,60 @@
+version: '3.4'
+
+# volumes:
+#   postgres-data:
+#     driver: local
+
+# services: 
+#   web:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     # image: recipie-hub
+#     environment:
+#       - ASPNETCORE_ENVIRONMENT=Development
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     # volumes:
+#     #   - ./:/app
+#   # db:
+#   #   image: postgres:11.0-alpine
+#   #   volumes:
+#   #     - postgres-data:/var/lib/postgresql/data
+    
+networks:
+  dockerapi-dev:
+    driver: bridge
+
+services:
+  recipiehub:
+    image: recipie-hub:latest
+    depends_on:
+      - "postgres_image"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      DB_CONNECTION_STRING: "host=postgres_image;port=5432;database=recipiehub;username=dbuser;password=password"
+    networks:
+      - dockerapi-dev
+    
+  postgres_image:
+    image: "postgres:11.0-alpine"
+    ports:
+      - "5432:5432"
+    restart: always
+    volumes:
+      - db_volume:/var/lib/postgresql/data
+      - ./dbscripts/domaindata.sql :/docker-entrypoint-initdb.d/seed.sql
+    environment:
+      POSTGRES_USER: "dbuser"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_DB: "recipiehub"
+    networks:
+      - dockerapi-dev
+    
+volumes:
+  db_volume:
